@@ -12,13 +12,13 @@ from llama_index_cmem.retrievers.cmem import CMEMRetriever
 
 from os import environ
 # setup the environment for the connection to Corporate Memory
-environ["CMEM_BASE_URI"] = ""
-environ["OAUTH_GRANT_TYPE"] = "password"
-environ["OAUTH_USER"] = "admin"
-environ["OAUTH_PASSWORD"] = ""
-environ["OAUTH_CLIENT_ID"] = "cmemc"
+#environ["CMEM_BASE_URI"] = ""
+#environ["OAUTH_GRANT_TYPE"] = "password"
+#environ["OAUTH_USER"] = "admin"
+#environ["OAUTH_PASSWORD"] = ""
+#environ["OAUTH_CLIENT_ID"] = "cmemc"
 
-llm = OpenAI(model="gpt-4o-mini", api_key="")
+llm = OpenAI(model="gpt-4o-mini")
 Settings.llm = llm
 
 response_synthesizer = get_response_synthesizer()

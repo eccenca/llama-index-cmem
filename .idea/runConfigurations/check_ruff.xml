@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="check:ruff" type="TaskRunConfiguration" factoryName="TaskRunConfiguration">
+    <taskfile taskPath="" filename="$PROJECT_DIR$/Taskfile.yaml" task="format:fix check:ruff" workingDirectory="$PROJECT_DIR$" arguments="" pty="false">
+      <envs />
+      <vars />
+    </taskfile>
+    <method v="2" />
+  </configuration>
+</component>
