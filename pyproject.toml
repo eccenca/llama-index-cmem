@@ -13,6 +13,8 @@ readme = "README-public.md"
 
 [tool.poetry.dependencies]
 python = ">=3.11, ^3"
+cmem-cmempy = "^24.2.0"
+llama-index = "^0.11.22"
 
 
 

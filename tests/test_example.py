@@ -3,7 +3,7 @@
 Remove this and other example files after bootstrapping your project.
 """
 
-from llama_index_cmem.example import double
+from examples.example import double
 
 
 def test_example() -> None:
