@@ -37,8 +37,7 @@ Response:
 """
 
 DEFAULT_SPARQL_REFINE_PROMPT = PromptTemplate(
-    DEFAULT_SPARQL_REFINE_PROMPT_TEMPLATE,
-    prompt_type=PromptType.REFINE
+    DEFAULT_SPARQL_REFINE_PROMPT_TEMPLATE, prompt_type=PromptType.REFINE
 )
 
 DEFAULT_SPARQL_REFINE_PROMPT_TEMPLATE2 = """
@@ -62,13 +61,14 @@ Response:
 """
 
 DEFAULT_SPARQL_REFINE_PROMPT2 = PromptTemplate(
-    DEFAULT_SPARQL_REFINE_PROMPT_TEMPLATE2,
-    prompt_type=PromptType.REFINE
+    DEFAULT_SPARQL_REFINE_PROMPT_TEMPLATE2, prompt_type=PromptType.REFINE
 )
+
 
 def download_ontology(ontology_graph):
     graph = get(ontology_graph, owl_imports_resolution=True, accept="text/turtle")
     return graph.content
+
 
 class CMEMQueryBuilder2:
     """CMEM query builder.
@@ -102,7 +102,7 @@ class CMEMQueryBuilder2:
             DEFAULT_SPARQL_PROMPT,
             query_str=question,
             ontology_str=self.ontology_str,
-            context_graph=self.context_graph
+            context_graph=self.context_graph,
         )
         cmem_query = CMEMQuery2(question)
         cmem_query.add(predict)
@@ -111,20 +111,18 @@ class CMEMQueryBuilder2:
 
     def refine_sparql(self, question: str, cmem_query: CMEMQuery) -> CMEMQuery:
         """Refine SPARQL query"""
-
         predict = self.llm.predict(
             DEFAULT_SPARQL_REFINE_PROMPT,
             query_str=question,
             ontology_str=self.ontology_str,
             context_graph=self.context_graph,
-            sparql_str=as_sparql(cmem_query.get_sparql())
+            sparql_str=as_sparql(cmem_query.get_sparql()),
         )
         cmem_query.set_refined_prediction(predict)
         return cmem_query
 
     def refine_sparql2(self, question: str, cmem_query: CMEMQuery2) -> CMEMQuery2:
         """Refine SPARQL query"""
-
         sparql_str = format_sparql_list(cmem_query.get_sparql_list())
 
         predict = self.llm.predict(
@@ -132,7 +130,7 @@ class CMEMQueryBuilder2:
             query_str=question,
             ontology_str=self.ontology_str,
             context_graph=self.context_graph,
-            sparql_str=sparql_str
+            sparql_str=sparql_str,
         )
 
         cmem_query.add(predict)

@@ -1,7 +1,7 @@
 import re
-from typing import List
 
 SPARQL_SEPARATOR = "\n-----\n"
+
 
 def as_sparql(sparql: str) -> str:
     """Extract pure SPARQL query
@@ -10,42 +10,40 @@ def as_sparql(sparql: str) -> str:
     The pure SPARQL query without explanation.
 
     """
-
     try:
         match = re.search(r"(?<=```sparql\n)([\s\S]*?)(?=\n```)", sparql).group(1)
     except AttributeError:
         match = "No SPARQL query found"
     return match
 
-def format_sparql_list(sparql_list: List[str]) -> str:
-    """Format a list of sparql queries as string"""
 
+def format_sparql_list(sparql_list: list[str]) -> str:
+    """Format a list of sparql queries as string"""
     return SPARQL_SEPARATOR.join(sparql_list)
+
 
 class CMEMQuery2:
     """LLM query object.
 
-        This query object holds the original query together with the generated queries of the LLM.
+    This query object holds the original query together with the generated queries of the LLM.
 
-        Args:
-            question (str): The original query.
-        """
+    Args:
+        question (str): The original query.
 
-    def __init__(
-            self,
-            question
-    ) -> None:
+    """
+
+    def __init__(self, question) -> None:
         self.question: str = question
-        self.prediction: List[str] = []
-        self.sparql: List[str] = []
-        self.query_list: List[QueryPair] = []
+        self.prediction: list[str] = []
+        self.sparql: list[str] = []
+        self.query_list: list[QueryPair] = []
 
     def add(self, prediction: str):
         self.prediction.append(prediction)
         self.sparql.append(as_sparql(prediction))
 
     def add2(self, prediction: str):
-        query_pair = QueryPair(prediction,as_sparql(prediction))
+        query_pair = QueryPair(prediction, as_sparql(prediction))
         self.query_list.append(query_pair)
 
     def get_prediction_list(self):
@@ -66,14 +64,11 @@ class CMEMQuery2:
     def get_last_query(self):
         return self.query_list[len(self.query_list) - 1]
 
+
 class QueryPair:
     """A query pair"""
 
-    def __init__(
-            self,
-            prediction: str,
-            sparql: str
-    ) -> None:
+    def __init__(self, prediction: str, sparql: str) -> None:
         self.prediction = prediction
         self.sparql = sparql
 

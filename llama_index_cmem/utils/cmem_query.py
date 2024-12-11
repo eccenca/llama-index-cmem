@@ -1,5 +1,6 @@
 import re
 
+
 def as_sparql(sparql: str) -> str:
     """Get pure SPARQL query
 
@@ -7,7 +8,6 @@ def as_sparql(sparql: str) -> str:
     The pure SPARQL query without explanation.
 
     """
-
     try:
         match = re.search(r"(?<=```sparql\n)([\s\S]*?)(?=\n```)", sparql).group(1)
     except AttributeError:
@@ -18,16 +18,14 @@ def as_sparql(sparql: str) -> str:
 class CMEMQuery:
     """LLM query object.
 
-        This query object holds the original query together with the generated queries of the LLM.
+    This query object holds the original query together with the generated queries of the LLM.
 
-        Args:
-            original_question (str): The original query.
-        """
+    Args:
+        original_question (str): The original query.
 
-    def __init__(
-            self,
-            original_question
-    ) -> None:
+    """
+
+    def __init__(self, original_question) -> None:
         self.original_question = original_question
         self.sparql_prediction = None
         self.sparql = None

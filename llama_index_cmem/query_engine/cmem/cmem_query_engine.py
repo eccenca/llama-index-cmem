@@ -4,6 +4,7 @@ from llama_index.core.response_synthesizers import BaseSynthesizer
 
 from llama_index_cmem.retrievers.cmem import CMEMRetriever
 
+
 class CMEMQueryEngine(CustomQueryEngine):
     """CMEM Query Engine"""
 
