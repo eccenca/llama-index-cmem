@@ -1,1 +1,1 @@
-"""graph_stores"""
+"""llama-index-cmem.graph_stores"""

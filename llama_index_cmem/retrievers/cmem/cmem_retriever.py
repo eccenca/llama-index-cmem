@@ -1,4 +1,6 @@
-from typing import Any
+"""CMEM retriever"""
+
+import logging
 
 from llama_index.core import QueryBundle, Settings
 from llama_index.core.base.base_retriever import BaseRetriever
@@ -10,6 +12,8 @@ from llama_index_cmem.graph_stores.cmem.cmem_graph_store import is_empty_result
 from llama_index_cmem.utils.cmem_query_builder import LLMQueryBuilder
 from llama_index_cmem.utils.cmem_query_builder2 import CMEMQueryBuilder2
 
+logger = logging.getLogger(__name__)
+
 
 class CMEMRetriever(BaseRetriever):
     """CMEM Retriever"""
@@ -20,7 +24,6 @@ class CMEMRetriever(BaseRetriever):
         ontology_graph: str,
         context_graph: str,
         llm: LLM | None = None,
-        **kwargs: Any,
     ) -> None:
         super().__init__()
         self.graph_store = graph_store
@@ -38,7 +41,7 @@ class CMEMRetriever(BaseRetriever):
         sparql = cmem_query.get_sparql()
         response = self.graph_store.query(query=sparql)
         if is_empty_result(response):
-            print("CMEM answered with an empty result. Let me try again with another query...")
+            logger.info("Empty CMEM query. Try another query.")
             refined_sparql = self.query_builder.refine_sparql(
                 question=query_bundle.query_str, cmem_query=cmem_query
             ).get_refined_sparql()
