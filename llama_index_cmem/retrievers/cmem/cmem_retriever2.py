@@ -25,7 +25,7 @@ class CMEMRetriever2(BaseRetriever):
         graph_store: GraphStore,
         ontology_graph: str,
         context_graph: str,
-        llm: LLM | None = None,
+        llm: LLM,
     ) -> None:
         super().__init__()
         self.graph_store = graph_store

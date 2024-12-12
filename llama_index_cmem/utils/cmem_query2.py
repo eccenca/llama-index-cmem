@@ -7,11 +7,10 @@ SPARQL_SEPARATOR = "\n-----\n"
 
 def as_sparql(sparql: str) -> str:
     """Extract SPARQL query with regex."""
-    try:
-        match = re.search(r"(?<=```sparql\n)([\s\S]*?)(?=\n```)", sparql).group(1)
-    except AttributeError:
-        match = "No SPARQL query found"
-    return match
+    match = (re.search(r"(?<=```sparql\n)([\s\S]*?)(?=\n```)", sparql))
+    if match:
+        return match.group(1)
+    return "No SPARQL query found"
 
 
 def format_sparql_list(sparql_list: list[str]) -> str:

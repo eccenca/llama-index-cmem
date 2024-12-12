@@ -11,7 +11,13 @@ logger = logging.getLogger(__name__)
 
 def is_empty_result(response: dict) -> bool:
     """Check if a cmem response is empty."""
-    return len(response.get("results").get("bindings")) < 1
+    if response:
+        results = response.get("results")
+        if results:
+            bindings = results.get("bindings")
+            if bindings:
+                return len(bindings) < 1
+    return True
 
 
 class CMEMGraphStore(GraphStore):
@@ -20,7 +26,7 @@ class CMEMGraphStore(GraphStore):
     Runs a SPARQL query against a cmem instance.
     """
 
-    def query(self, query: str, param_map: dict[str, Any] | None = None) -> dict:
+    def query(self, query: str, param_map: dict[str, Any] | None = None)  -> object:
         """Query CMEM graph store"""
         placeholder = None
         if param_map:

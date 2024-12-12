@@ -1,4 +1,5 @@
 """CMEM query builder 2"""
+from typing import Any
 
 from cmem.cmempy.dp.proxy.graph import get
 from llama_index.core import PromptTemplate
@@ -73,7 +74,7 @@ DEFAULT_SPARQL_REFINE_PROMPT2 = PromptTemplate(
 def download_ontology(ontology_graph: str) -> str:
     """Download an ontology as text/turtle"""
     graph = get(ontology_graph, owl_imports_resolution=True, accept="text/turtle")
-    return graph.content
+    return str(graph.content)
 
 
 class CMEMQueryBuilder2:
@@ -109,7 +110,7 @@ class CMEMQueryBuilder2:
             query_str=question,
             ontology_str=self.ontology_str,
             context_graph=self.context_graph,
-            sparql_str=as_sparql(cmem_query.get_sparql()),
+            sparql_str=as_sparql(cmem_query.get_sparql),
         )
         cmem_query.set_refined_prediction(predict)
         return cmem_query
