@@ -1,11 +1,11 @@
-"""CMEM query builder"""
+"""CMEM query builder 2"""
 
 from cmem.cmempy.dp.proxy.graph import get
-from llama_index.core import PromptTemplate
+from llama_index.core import PromptTemplate, Settings
 from llama_index.core.llms import LLM
 from llama_index.core.prompts import PromptType
 
-from llama_index_cmem.utils.cmem_query import CMEMQuery, as_sparql
+from llama_index_cmem.utils.cmem_query import CMEMQuery, format_sparql_list
 
 DEFAULT_SPARQL_PROMPT_TEMPLATE = """
 You are an expert for generating SPARQL queries to answer a question.
@@ -24,15 +24,17 @@ DEFAULT_SPARQL_PROMPT = PromptTemplate(
 )
 
 DEFAULT_SPARQL_REFINE_PROMPT_TEMPLATE = """
-You are an expert for refining SPARQL queries to answer a user question.
+You are an expert for generating and refining SPARQL queries.
+The original SPARQL query did not work as expected, so we need to refine it.
+
+Follow this rules when generating SPARQL queries:
+A SPARQL query needs to answer a specific user question.
+A SPARQL query needs to follow a given ontology.
+A SPARQL query should be explained.
 
 The user question is given below.
 The RDF ontology in turtle format is given below.
-The original SPARQL query is given below.
-
-The original SPARQL query did not work as expected.
-Refine the given SPARQL query considering the given ontology
-to answer the user question using this graph '{context_graph}'.
+All previous SPARQL queries are given below.
 
 User question: {query_str}
 RDF ontology: {ontology_str}
@@ -48,11 +50,11 @@ DEFAULT_SPARQL_REFINE_PROMPT = PromptTemplate(
 def download_ontology(ontology_graph: str) -> str:
     """Download an ontology as text/turtle"""
     graph = get(ontology_graph, owl_imports_resolution=True, accept="text/turtle")
-    return graph.content
+    return str(graph.content)
 
 
-class LLMQueryBuilder:
-    """LLM query builder.
+class CMEMQueryBuilder:
+    """CMEM query builder.
 
     This query builder generates SPARQL queries based on a natural language and a given ontology.
 
@@ -61,29 +63,37 @@ class LLMQueryBuilder:
     def __init__(self, ontology_graph: str, context_graph: str, llm: LLM):
         self.ontology_graph = ontology_graph
         self.context_graph = context_graph
-        self.llm = llm
+        self.llm = llm or Settings.llm
         self.ontology_str = download_ontology(self.ontology_graph)
 
-    def generate_sparql(self, question: str) -> CMEMQuery:
+    def generate_sparql(
+        self, question: str, prompt: PromptTemplate = DEFAULT_SPARQL_PROMPT
+    ) -> CMEMQuery:
         """Generate SPARQL query"""
         predict = self.llm.predict(
-            DEFAULT_SPARQL_PROMPT,
+            prompt=prompt,
             query_str=question,
             ontology_str=self.ontology_str,
             context_graph=self.context_graph,
         )
         cmem_query = CMEMQuery(question)
-        cmem_query.set_sparql_prediction(predict)
+        cmem_query.add(predict)
         return cmem_query
 
-    def refine_sparql(self, question: str, cmem_query: CMEMQuery) -> CMEMQuery:
+    def refine_sparql2(
+        self,
+        question: str,
+        cmem_query: CMEMQuery,
+        prompt: PromptTemplate = DEFAULT_SPARQL_REFINE_PROMPT,
+    ) -> CMEMQuery:
         """Refine SPARQL query"""
+        sparql_str = format_sparql_list(cmem_query.get_sparql_list())
         predict = self.llm.predict(
-            DEFAULT_SPARQL_REFINE_PROMPT,
+            prompt=prompt,
             query_str=question,
             ontology_str=self.ontology_str,
             context_graph=self.context_graph,
-            sparql_str=as_sparql(cmem_query.get_sparql()),
+            sparql_str=sparql_str,
         )
-        cmem_query.set_refined_prediction(predict)
+        cmem_query.add(predict)
         return cmem_query

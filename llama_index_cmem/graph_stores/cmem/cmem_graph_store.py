@@ -26,7 +26,7 @@ class CMEMGraphStore(GraphStore):
     Runs a SPARQL query against a cmem instance.
     """
 
-    def query(self, query: str, param_map: dict[str, Any] | None = None)  -> object:
+    def query(self, query: str, param_map: dict[str, Any] | None = None) -> object:
         """Query CMEM graph store"""
         placeholder = None
         if param_map:

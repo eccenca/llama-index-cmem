@@ -2,46 +2,47 @@
 
 import re
 
+SPARQL_SEPARATOR = "\n-----\n"
 
-def as_sparql(sparql: str) -> str:
-    """Extract SPARQL query"""
-    try:
-        match = re.search(r"(?<=```sparql\n)([\s\S]*?)(?=\n```)", sparql).group(1)
-    except AttributeError:
-        match = "No SPARQL query found"
-    return match
+
+def extract_sparql(sparql: str) -> str:
+    """Extract SPARQL query with regex."""
+    match = re.search(r"(?<=```sparql\n)([\s\S]*?)(?=\n```)", sparql)
+    if match:
+        return match.group(1)
+    return "No SPARQL query found"
+
+
+def format_sparql_list(sparql_list: list[str]) -> str:
+    """Format a list of sparql queries as string"""
+    return SPARQL_SEPARATOR.join(sparql_list)
 
 
 class CMEMQuery:
-    """LLM query object.
-
-    This query object holds the original query together with the generated queries of the LLM.
-
-    """
+    """LLM query object"""
 
     def __init__(self, question: str) -> None:
-        self.question = question
-        self.sparql_prediction = None
-        self.sparql = None
-        self.refined_prediction = None
-        self.refined_sparql = None
+        self.question: str = question
+        self.prediction: list[str] = []
+        self.sparql: list[str] = []
 
-    def set_sparql_prediction(self, sparql_prediction: str) -> None:
-        """Set sparql prediction"""
-        self.sparql_prediction = sparql_prediction
+    def add(self, prediction: str) -> None:
+        """Add prediction"""
+        self.prediction.append(prediction)
+        self.sparql.append(extract_sparql(prediction))
 
-    def get_sparql(self) -> str:
-        """Get sparql"""
-        if self.sparql is None:
-            self.sparql = as_sparql(self.sparql_prediction)
+    def get_prediction_list(self) -> list[str]:
+        """Get prediction list"""
+        return self.prediction
+
+    def get_sparql_list(self) -> list[str]:
+        """Get sparql list"""
         return self.sparql
 
-    def set_refined_prediction(self, refined_prediction: str) -> None:
-        """Set refined prediction"""
-        self.refined_prediction = refined_prediction
+    def get_last_prediction(self) -> str:
+        """Get last prediction"""
+        return self.prediction[len(self.prediction) - 1]
 
-    def get_refined_sparql(self) -> str:
-        """Get refined sparql"""
-        if self.refined_sparql is None:
-            self.refined_sparql = as_sparql(self.refined_prediction)
-        return self.refined_sparql
+    def get_last_sparql(self) -> str:
+        """Get last sparql"""
+        return self.sparql[len(self.sparql) - 1]
