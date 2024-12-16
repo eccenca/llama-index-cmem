@@ -39,7 +39,7 @@ class CMEMRetriever(BaseRetriever):
         index = 0
         while is_empty_result(response) and index < DEFAULT_RETRIES:
             logger.info("Empty CMEM query. Try another query.")
-            cmem_query = self.query_builder.refine_sparql2(
+            cmem_query = self.query_builder.refine_sparql(
                 question=query_bundle.query_str, cmem_query=cmem_query
             )
             response = self.graph_store.query(query=cmem_query.get_last_sparql())

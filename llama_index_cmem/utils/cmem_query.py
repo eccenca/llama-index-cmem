@@ -29,7 +29,8 @@ class CMEMQuery:
     def add(self, prediction: str) -> None:
         """Add prediction"""
         self.prediction.append(prediction)
-        self.sparql.append(extract_sparql(prediction))
+        extract = extract_sparql(prediction)
+        self.sparql.append(extract)
 
     def get_prediction_list(self) -> list[str]:
         """Get prediction list"""

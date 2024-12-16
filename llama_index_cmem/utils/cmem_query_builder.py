@@ -8,12 +8,20 @@ from llama_index.core.prompts import PromptType
 from llama_index_cmem.utils.cmem_query import CMEMQuery, format_sparql_list
 
 DEFAULT_SPARQL_PROMPT_TEMPLATE = """
-You are an expert for generating SPARQL queries to answer a question.
-The original question is given below.
+You are an expert for generating SPARQL queries.
+
+Follow this rules when generating SPARQL queries:
+A SPARQL query needs to answer a specific user question.
+A SPARQL query needs to follow a given RDF ontology.
+A SPARQL query should be explained.
+
+The user question is given below.
 The RDF ontology in turtle format is given below.
+
 Generate a valid SPARQL query considering the given ontology
-to answer the question using this graph '{context_graph}'.
-Original question: {query_str}
+to answer the user question using this graph '{context_graph}'.
+
+User question: {query_str}
 RDF ontology: {ontology_str}
 Response:
 """
@@ -25,20 +33,24 @@ DEFAULT_SPARQL_PROMPT = PromptTemplate(
 
 DEFAULT_SPARQL_REFINE_PROMPT_TEMPLATE = """
 You are an expert for generating and refining SPARQL queries.
-The original SPARQL query did not work as expected, so we need to refine it.
+The original/previous SPARQL query did not work as expected, so we need to refine it.
 
 Follow this rules when generating SPARQL queries:
 A SPARQL query needs to answer a specific user question.
-A SPARQL query needs to follow a given ontology.
+A SPARQL query needs to follow a given RDF ontology.
 A SPARQL query should be explained.
+A refined SPARQL query needs to differ from any previous SPARQL query.
 
 The user question is given below.
 The RDF ontology in turtle format is given below.
 All previous SPARQL queries are given below.
 
+Generate a valid SPARQL query considering the given ontology
+to answer the question using this graph '{context_graph}'.
+
 User question: {query_str}
 RDF ontology: {ontology_str}
-Original SPARQL query: {sparql_str}
+All previous SPARQL queries: {sparql_str}
 Response:
 """
 
@@ -80,7 +92,7 @@ class CMEMQueryBuilder:
         cmem_query.add(predict)
         return cmem_query
 
-    def refine_sparql2(
+    def refine_sparql(
         self,
         question: str,
         cmem_query: CMEMQuery,
