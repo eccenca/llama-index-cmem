@@ -18,9 +18,7 @@ And probably more text after.
 SPARQL_STR = """THIS IS SPARQL"""
 
 SPARQL_LIST_STR = """THIS IS SPARQL
-
 -----
-
 THIS IS SPARQL"""
 
 
