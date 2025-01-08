@@ -44,4 +44,6 @@ class CMEMRetriever(BaseRetriever):
             )
             response = self.graph_store.query(query=cmem_query.get_last_sparql())
             index += 1
-        return [NodeWithScore(node=TextNode(text=str(response)), score=1.0)]
+        metadata = {"cmem_query": cmem_query, "cmem_response": response}
+        node = TextNode(text=str(response), metadata=metadata)
+        return [NodeWithScore(node=node, score=1.0)]
