@@ -51,13 +51,13 @@ class CMEMRetriever(BaseRetriever):
             cmem_query = self.query_builder.refine_sparql(
                 question=query_bundle.query_str, cmem_query=cmem_query
             )
-            response = self.graph_store.query(query=cmem_query.get_last_sparql())
+            response = self._query(query=cmem_query.get_last_sparql())
             index += 1
         metadata = {"cmem_query": cmem_query, "cmem_response": response}
         node = TextNode(text=str(response), metadata=metadata)
         return [NodeWithScore(node=node, score=1.0)]
 
-    def _query(self, query: str, param_map: dict[str, Any] | None = None) -> object:
+    def _query(self, query: str, param_map: dict[str, Any] | None = None) -> dict:
         """Query CMEM graph store"""
         placeholder = None
         if param_map:
@@ -65,4 +65,4 @@ class CMEMRetriever(BaseRetriever):
         logger.info(f"SPARQL Query: {0}".format(query))
         response = SparqlQuery(query, placeholder=placeholder).get_json_results()
         logger.info(f"CMEM Response: {response!s}")
-        return response
+        return response  # type: ignore[no-any-return]
