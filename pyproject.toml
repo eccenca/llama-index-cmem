@@ -21,6 +21,7 @@ python-dotenv = "^1.0.1"
 
 
 [tool.poetry.group.dev.dependencies]
+cmem-cmemc = "^24.3.0"
 genbadge = {extras = ["coverage"], version = "^1.1.1"}
 mypy = "^1.11.1"
 pip = "^24"
@@ -31,7 +32,6 @@ pytest-html = "^4.1.1"
 pytest-memray = { version = "^1.7.0",  markers = "platform_system != 'Windows'" }
 ruff = "^0.6.1"
 safety = "^1.10.3"
-ipykernel = "^6.29.5"
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
