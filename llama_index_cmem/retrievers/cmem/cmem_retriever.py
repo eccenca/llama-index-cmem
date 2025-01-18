@@ -17,13 +17,7 @@ DEFAULT_RETRIES = 5
 
 def is_empty_result(response: dict) -> bool:
     """Check if a cmem response is empty."""
-    if response:
-        results = response.get("results")
-        if results:
-            bindings = results.get("bindings")
-            if bindings:
-                return len(bindings) < 1
-    return True
+    return not response.get("results", {}).get("bindings", [])
 
 
 class CMEMRetriever(BaseRetriever):
