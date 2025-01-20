@@ -10,6 +10,5 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - example notebooks for solo query builder, query engine and chat engine
 - retriever using query builder and graph store to retrieve cmem data as nodes
-- graph store for running queries against cmem
 - query builder with a query object holding predictions and sparql queries
 - initial version

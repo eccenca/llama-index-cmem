@@ -2,9 +2,19 @@
 
 llama-index tools eccenca Corporate Memory Integration
 
-
   
 [![poetry][poetry-shield]][poetry-link] [![ruff][ruff-shield]][ruff-link] [![mypy][mypy-shield]][mypy-link] [![copier][copier-shield]][copier] 
+
+## Usage
+
+The llama-index-cmem package allows using [eccenca Corporate Memory](https://eccenca.com/products/enterprise-knowledge-graph-platform-corporate-memory) together with [LlamaIndex](https://docs.llamaindex.ai/en/stable/).
+
+Main components are CMEMQueryBuilder and CMEMRetriever.
+
+There are several example notebooks available:
+- QueryBuilder: Generate a SPARQL query with given ontology and integration/context graphs.
+- ChatEngine: Chatting with an RDF knowledge graph data.
+- QueryEngine: Single Q&A engine with RDF knowledge graph data.
 
 
 [poetry-link]: https://python-poetry.org/
