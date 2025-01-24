@@ -1,10 +1,12 @@
 """Testing cmem reader"""
+
 import pytest
 
 from llama_index_cmem.readers.cmem import CMEMReader
 from tests.utils import needs_cmem
 
 NUMBER_OF_DOCUMENTS = 20043
+
 
 @needs_cmem
 @pytest.mark.usefixtures("graph_setup")
