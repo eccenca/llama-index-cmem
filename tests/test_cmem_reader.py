@@ -1,6 +1,5 @@
 """Testing cmem reader"""
 
-
 import pytest
 
 from llama_index_cmem.readers.cmem import CMEMReader
