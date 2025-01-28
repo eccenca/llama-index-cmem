@@ -8,7 +8,7 @@ DEFAULT_QUERY = """
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
 SELECT ?s ?sl ?pl ?ol
-FROM {graph}
+FROM <{graph}>
 WHERE {{
   ?s ?p ?o .
   ?s rdfs:label ?sl .
