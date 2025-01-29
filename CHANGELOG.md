@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+### FIXED
+
+- fix ruff linters in example notebooks
+
+## [0.5.0] 2025-01-22
+
 ### Added
 
 - example notebooks for solo query builder, query engine and chat engine
