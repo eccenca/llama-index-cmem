@@ -13,8 +13,8 @@ WHERE {{
   ?s ?p ?o .
   ?s rdfs:label ?sl .
   ?p rdfs:label ?pl .
-  {{ 
-    OPTIONAL {{ 
+  {{
+    OPTIONAL {{
       OPTIONAL {{ ?o rdfs:label ?ol_ . }}
       BIND(IF(!ISIRI(?o), ?o, ?ol_) AS ?ol)
     }}

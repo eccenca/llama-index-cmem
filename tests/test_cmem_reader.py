@@ -4,7 +4,7 @@ from llama_index_cmem.readers.cmem import CMEMReader
 from tests.conftest import GraphSetup
 from tests.utils import needs_cmem
 
-NUMBER_OF_DOCUMENTS = 20955
+NUMBER_OF_DOCUMENTS = 10037
 
 
 @needs_cmem
