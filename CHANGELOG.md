@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+### Added
+
+- add cmem reader with a default query for all labels
+
 ### FIXED
 
 - fix ruff linters in example notebooks
