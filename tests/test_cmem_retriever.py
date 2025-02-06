@@ -9,7 +9,7 @@ from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.llms.openai import OpenAI
 
 from llama_index_cmem.retrievers.cmem.cmem_retriever import CMEMRetriever
-from tests.utils import needs_cmem, needs_openai
+from tests.utils import needs_openai
 
 if TYPE_CHECKING:
     from llama_index_cmem.utils.cmem_query import CMEMQuery
@@ -30,7 +30,6 @@ def chat_engine() -> CondensePlusContextChatEngine:
 
 
 @needs_openai
-@needs_cmem
 @pytest.mark.parametrize("limit", [10, 20])
 @pytest.mark.usefixtures("graph_setup")
 def test_cmem_retriever(chat_engine: CondensePlusContextChatEngine, limit: int) -> None:
@@ -42,3 +41,8 @@ def test_cmem_retriever(chat_engine: CondensePlusContextChatEngine, limit: int) 
     cmem_query: CMEMQuery = node.metadata["cmem_query"]
     assert cmem_query.get_last_sparql()
     assert len(node.metadata["cmem_response"]["results"]["bindings"]) == limit
+
+
+@pytest.mark.usefixtures("graph_setup")
+def test_catalog_retriever() -> None:
+    """Test catalog retriever"""

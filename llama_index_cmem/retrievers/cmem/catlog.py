@@ -15,7 +15,7 @@ class CatalogRetriever(BaseRetriever):
     def __init__(
         self,
         identifier: str,
-        placeholder: dict = None,
+        placeholder: dict | None = None,
         llm: LLM = None,
     ) -> None:
         super().__init__()
