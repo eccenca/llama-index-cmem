@@ -41,8 +41,3 @@ def test_cmem_retriever(chat_engine: CondensePlusContextChatEngine, limit: int) 
     cmem_query: CMEMQuery = node.metadata["cmem_query"]
     assert cmem_query.get_last_sparql()
     assert len(node.metadata["cmem_response"]["results"]["bindings"]) == limit
-
-
-@pytest.mark.usefixtures("graph_setup")
-def test_catalog_retriever() -> None:
-    """Test catalog retriever"""

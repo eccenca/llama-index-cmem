@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Added
 
+- catalog retriever to allow retrieve nodes from predefined queries
 - add cmem reader with a default query for all labels
 
 ### FIXED

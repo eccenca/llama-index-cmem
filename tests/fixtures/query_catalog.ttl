@@ -48,6 +48,7 @@
 @prefix ofn: <http://www.ontotext.com/sparql/functions/> .
 @prefix graphdb: <http://www.ontotext.com/config/graphdb#> .
 @prefix omgeo: <http://www.ontotext.com/owlim/geo#> .
+@prefix ecc-qry: <https://ns.eccenca.com/data/queries/> .
 
 <https://ns.eccenca.com/data/queries/> a void:Dataset;
   rdfs:comment """This is an internal Corporate Memory dataset, not visible to non-admin users.
@@ -58,29 +59,92 @@ You can use the QUERY tab in order to create and manage your Knowledge Graph que
   shui:isSystemResource true;
   shui:managedClasses shui:SparqlQuery, shui:SelectQueryEndpoint, shui:SelectResultTemplate .
 
-<https://ns.eccenca.com/data/queries/07cb8ead-65ad-4ef0-9964-04f244dd4bec> a shui:SparqlQuery;
-  rdfs:label "default";
-  dcterms:description "TODO - replace and add more queries";
-  dcterms:modified "2025-02-06T08:08:19.124"^^xsd:dateTime;
+ecc-qry:list-classes a shui:SparqlQuery;
+  rdfs:label "ordered list of used classes for a graph";
+  dcterms:description "given a graph URI, returns a list of classes with instance count";
+  dcterms:modified "2025-02-13T08:00:00.000"^^xsd:dateTime;
+  shui:queryText """SELECT ?class (COUNT(?s) AS ?instances )
+WHERE {
+  GRAPH <{{graph}}> {
+	  ?s a ?class.
+  }
+}
+GROUP BY ?class
+ORDER BY DESC(?instances)""";
+  shui:queryType "SELECT" .
+
+ecc-qry:list-properties a shui:SparqlQuery;
+  rdfs:label "ordered list of used properties for a graph";
+  dcterms:description "given a graph URI, returns a list of properties with triples count";
+  dcterms:modified "2025-02-13T08:00:00.000"^^xsd:dateTime;
+  shui:queryText """SELECT ?property (COUNT(?s) AS ?triples )
+WHERE {
+  GRAPH <{{graph}}> {
+	  ?s ?property ?o.
+  }
+}
+GROUP BY ?property
+ORDER BY DESC(?triples)""";
+  shui:queryType "SELECT" .
+
+ecc-qry:search-regex a shui:SparqlQuery;
+  rdfs:label "search via regex match";
+  dcterms:description "returns graph, resource and matched literal for a given search string";
+  dcterms:modified "2025-02-13T08:00:00.000"^^xsd:dateTime;
+  shui:queryText """SELECT DISTINCT ?graph ?subject ?literal
+WHERE {
+  GRAPH ?graph {
+	  ?subject ?property ?literal .
+	  FILTER regex(?literal, \"{{search}}\", \"i\")
+  }
+}""";
+  shui:queryType "SELECT" .
+
+ecc-qry:all-services a shui:SparqlQuery;
+  rdfs:label "All Services";
+  dcterms:description "all services from products demo data";
   shui:queryType "SELECT";
-  shui:queryText """PREFIX  rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX  rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+  shui:queryText """
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX pv: <http://ld.company.org/prod-vocab/>
+PREFIX pi: <http://ld.company.org/prod-inst/>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX qry: <https://ns.eccenca.com/data/queries/>
+PREFIX shui: <https://vocab.eccenca.com/shui/>
+PREFIX purl: <http://purl.org/dc/terms/>
 
-SELECT  *
-WHERE
-  { ?sub  rdfs:label  ?obj }
-LIMIT   10
+SELECT *
+FROM pi:
+WHERE {
+    ?srv a pv:Service .
+    ?srv pv:hasProductManager ?pm .
+}
 """;
-  dcterms:created "2025-02-06T08:08:19.124"^^xsd:dateTime .
+  dcterms:modified "2025-02-13T08:00:00.000"^^xsd:dateTime .
 
-<https://ns.eccenca.com/data/queries/1e719240-19c0-4aa7-9b7d-4dd8156d9f41> shui:isSystemResource
-    true .
+ecc-qry:all-hardware a shui:SparqlQuery;
+  rdfs:label "All Hardware";
+  dcterms:description "all hardware from products demo data";
+  shui:queryType "SELECT";
+  shui:queryText """
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX pv: <http://ld.company.org/prod-vocab/>
+PREFIX pi: <http://ld.company.org/prod-inst/>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX qry: <https://ns.eccenca.com/data/queries/>
+PREFIX shui: <https://vocab.eccenca.com/shui/>
+PREFIX purl: <http://purl.org/dc/terms/>
 
-<https://ns.eccenca.com/data/queries/49174274-2cac-4b69-af0a-a83c8bb80a76> shui:isSystemResource
-    true .
-
-<https://ns.eccenca.com/data/queries/b45110fa-ccbf-4140-8228-117bec0cab54> shui:isSystemResource
-    true .
-
-<https://ns.eccenca.com/data/queries/e1e38f26-21e0-4d73-a2da-4d6031c73a7b> shui:isSystemResource
-    true .
+SELECT ?hw ?hwL ?pm ?pmL
+FROM pi:
+WHERE {
+    ?hw a pv:Hardware .
+    ?hw rdfs:label ?hwL .
+    ?hw pv:hasProductManager ?pm .
+    OPTIONAL { ?pm rdfs:label ?pmL_ . }
+    BIND(IF(BOUND(?pmL_), ?pmL_, \"N/A\") AS ?pmL)
+}
+""";
+  dcterms:modified "2025-02-13T08:00:00.000"^^xsd:dateTime .

@@ -14,9 +14,9 @@ class CatalogRetriever(BaseRetriever):
 
     def __init__(
         self,
-        identifier: str,
+        identifier: str | None = None,
         placeholder: dict | None = None,
-        llm: LLM = None,
+        llm: LLM | None = None,
     ) -> None:
         super().__init__()
         self.identifier = identifier
@@ -25,6 +25,10 @@ class CatalogRetriever(BaseRetriever):
 
     def _retrieve(self, query_bundle: QueryBundle) -> list[NodeWithScore]:
         catalog = QueryCatalog()
-        query = catalog.get_query(self.identifier, self.placeholder)
+        if self.identifier is not None:
+            query = catalog.get_query(self.identifier, self.placeholder)
+        else:
+            query_str = query_bundle.query_str
+            query = catalog.get_query(query_str)
         results = query.get_json_results(placeholder=self.placeholder)
         return auto_convert_results(results)
