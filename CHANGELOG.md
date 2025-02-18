@@ -8,11 +8,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Added
 
-- catalog retriever to allow retrieve nodes from predefined queries
+- catalog retriever allows retrieve nodes from predefined queries
 - add cmem reader with a default query for all labels
 
 ### FIXED
 
+- catalog:retriever: unknown query identifier does not raise attribute error but returns empty nodes list
 - fix ruff linters in example notebooks
 
 ## [0.5.0] 2025-01-22

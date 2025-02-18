@@ -31,6 +31,14 @@ def extract_bindings(nodes_with_score: list[NodeWithScore]) -> list[Any]:
 
 
 @pytest.mark.usefixtures("graph_setup")
+def test_catalog_retriever_unknown_query() -> None:
+    """Test catalog retriever with an unknown query"""
+    catalog_retriever = CatalogRetriever(identifier=":unknown-query")
+    retrieved_nodes = catalog_retriever.retrieve(QueryBundle(query_str="n/a"))
+    assert len(retrieved_nodes) == 0
+
+
+@pytest.mark.usefixtures("graph_setup")
 def test_catalog_retriever_services() -> None:
     """Test catalog retriever without placeholders and services"""
     catalog_retriever = CatalogRetriever(identifier=":all-services")

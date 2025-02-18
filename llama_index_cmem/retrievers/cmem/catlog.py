@@ -1,5 +1,7 @@
 """Catalog retriever."""
 
+import logging
+
 from cmem.cmempy.queries import QueryCatalog
 from llama_index.core import QueryBundle, Settings
 from llama_index.core.base.base_retriever import BaseRetriever
@@ -27,6 +29,12 @@ class CatalogRetriever(BaseRetriever):
         catalog = QueryCatalog()
         if self.identifier is not None:
             query = catalog.get_query(self.identifier, self.placeholder)
+            if query is None:
+                logging.warning(
+                    f"CMEM query catalog does not contain a query with identifier "
+                    f"'{self.identifier}'"
+                )
+                return []
         else:
             query_str = query_bundle.query_str
             query = catalog.get_query(query_str)
