@@ -1,5 +1,6 @@
 """Catalog retriever."""
 
+import json
 import logging
 import re
 from typing import Any, cast
@@ -14,43 +15,67 @@ from pydantic import BaseModel, Field
 
 from llama_index_cmem.retrievers.cmem.base import auto_convert_results
 
-DEFAULT_CATALOG_AUTO_SELECT_TEMPLATE = """
-You are an expert for SPARQL queries.
-
-Given is a catalog of predefined SPARQL queries.
-This query catalog is a list of query objects in JSON format.
+DEFAULT_AUTO_SELECT_QUERY_TEMPLATE = """
+Given is a query catalog as a list of SPARQL query objects in JSON format.
+Each query object has an identifier and some optional attributes.
 
 Here is an example of a query object:
+```json
 {
-    'identifier': ':unique id',
-    'label': 'a label naming the query',
+    'identifier': ':unique id of a query',
+    'label': 'a label naming a query',
     'description': 'an optional and more detailed description',
-    'placeholder': 'an optional list of placeholders',
     'sparql': 'the actual SPARQL query'
 }
+```
 
-Look at each query from the catalog and select the best matching query to answer
-the user question.
-
-In case the selected query contains a placeholder list, it is necessary
-to add meaningful values for each placeholder key.
-Look at the user question for useful values or guess a value for each placeholder key.
+Look at each query object from the catalog and select the best matching query to answer
+the user question. Return the identifier of the selected query as JSON object like:
+```json
+{
+  "identifier": "query_id"
+}
+```
 
 In case there is no matching query available in the catalog,
-return identifier = n/a, no placeholder and found = false.
+return `null`.
 
 User question: {query_str}
 Query catalog: {catalog_str}
 Response:
 """
 
-DEFAULT_CATALOG_AUTO_SELECT_PROMPT = PromptTemplate(
-    DEFAULT_CATALOG_AUTO_SELECT_TEMPLATE, prompt_type=PromptType.CUSTOM
+DEFAULT_AUTO_SELECT_QUERY_PROMPT = PromptTemplate(
+    DEFAULT_AUTO_SELECT_QUERY_TEMPLATE, prompt_type=PromptType.CUSTOM
+)
+
+DEFAULT_AUTO_FILL_PLACEHOLDER_TEMPLATE = """
+Given is a list of placeholder keys in JSON format and a user question.
+
+Generate a meaningful value for each placeholder key in the list.
+Return the result as JSON dictionary with key-value pairs like:
+```json
+{
+  "key1": "value1",
+  "key2": "value2"
+}
+```
+
+Look at the user question for useful values or guess a value for each placeholder key.
+If there are no useful values available, return `null`.
+
+User question: {query_str}
+Placeholder keys: {placeholder_keys_str}
+Response:
+"""
+
+DEFAULT_AUTO_FILL_PLACEHOLDER_PROMPT = PromptTemplate(
+    DEFAULT_AUTO_FILL_PLACEHOLDER_TEMPLATE, prompt_type=PromptType.CUSTOM
 )
 
 
-def get_queries_as_json() -> list[dict[str, Any]]:
-    """Get queries as JSON."""
+def get_query_catalog_as_json() -> list[dict[str, Any]]:
+    """Get query catalog as JSON."""
     results = SparqlQuery(QUERY_STRING, query_type="SELECT").get_json_results()
     queries = []
     for result in results["results"]["bindings"]:
@@ -59,10 +84,14 @@ def get_queries_as_json() -> list[dict[str, Any]]:
             "label": result.get("label").get("value"),
             "description": result.get("description", {}).get("value"),
             "sparql": result.get("text").get("value"),
-            "placeholder": re.findall(r"{{([a-zA-Z0-9_-]+)}}", result.get("text").get("value")),
         }
         queries.append(query)
     return queries
+
+
+def find_placeholder_key_in_query(query: SparqlQuery) -> list[str]:
+    """Extract query placeholders from SPARQL query."""
+    return re.findall(r"{{([a-zA-Z0-9_-]+)}}", query.text)
 
 
 def is_valid_query_identifier(identifier: str) -> bool:
@@ -70,21 +99,16 @@ def is_valid_query_identifier(identifier: str) -> bool:
     return identifier.startswith(":")
 
 
-class Placeholder(BaseModel):
-    """Placeholder model."""
+class AutoSelectQuery(BaseModel):
+    """Auto select query model."""
 
-    key: str = Field(description="The placeholder key")
-    value: str = Field(description="The placeholder value")
+    identifier: str = Field(..., description="Unique identifier of a query.")
 
 
-class AutoSelect(BaseModel):
-    """Auto select model."""
+class AutoFillPlaceholder(BaseModel):
+    """Autofill placeholder."""
 
-    identifier: str = Field(description="The query identifier", default="")
-    placeholder: list[Placeholder] = Field(
-        description="A list of placeholders as key-value pairs", default=[]
-    )
-    found: bool = Field(description="Whether a query was found or not", default=False)
+    data: dict[str, str] = Field(..., description="Placeholder as key-value pair.")
 
 
 class CatalogRetriever(BaseRetriever):
@@ -102,41 +126,86 @@ class CatalogRetriever(BaseRetriever):
         self.llm = llm or Settings.llm
 
     def _auto_select_query(
-        self, query_str: str, prompt: PromptTemplate = DEFAULT_CATALOG_AUTO_SELECT_PROMPT
-    ) -> AutoSelect:
-        queries = get_queries_as_json()
+        self, query_str: str, prompt: PromptTemplate = DEFAULT_AUTO_SELECT_QUERY_PROMPT
+    ) -> AutoSelectQuery | None:
+        queries = get_query_catalog_as_json()
         prediction = self.llm.structured_predict(
-            output_cls=AutoSelect, prompt=prompt, query_str=query_str, catalog_str=str(queries)
+            output_cls=AutoSelectQuery, prompt=prompt, query_str=query_str, catalog_str=str(queries)
         )
-        return cast(AutoSelect, prediction)
+        if prediction == "null":
+            return None
+        return cast(AutoSelectQuery, prediction)
+
+    def _auto_fill_placeholder(
+        self,
+        query_str: str,
+        placeholder_keys: list[str],
+        prompt: PromptTemplate = DEFAULT_AUTO_FILL_PLACEHOLDER_PROMPT,
+    ) -> AutoFillPlaceholder | None:
+        if not placeholder_keys:
+            return None
+        placeholder_keys_str = str(placeholder_keys)
+        prediction = self.llm.structured_predict(
+            output_cls=AutoFillPlaceholder,
+            prompt=prompt,
+            query_str=query_str,
+            placeholder_keys_str=placeholder_keys_str,
+        )
+        if prediction == "null":
+            return None
+        return cast(AutoFillPlaceholder, prediction)
+
+    def _default_retrieve(self, catalog: QueryCatalog) -> tuple[dict, dict]:
+        metadata = {"cmem": {"identifier": self.identifier, "placeholder": self.placeholder}}
+        query = catalog.get_query(self.identifier, self.placeholder)
+        if query is None:
+            logging.warning(
+                f"CMEM query catalog does not contain a query with identifier "
+                f"'{self.identifier}'"
+            )
+            results = {}
+        else:
+            results = query.get_json_results(placeholder=self.placeholder)
+        return results, metadata
+
+    def _auto_retrieve(self, catalog: QueryCatalog, query_str: str) -> tuple[dict, dict]:
+        auto_select_query = self._auto_select_query(query_str=query_str)
+        if auto_select_query is None:
+            logging.warning("Could not find a matching query in CMEM query catalog.")
+            metadata = {"cmem": {"identifier": "None", "placeholder": "None"}}
+            results = {}
+        else:
+            query = catalog.get_query(auto_select_query.identifier)
+            placeholder_keys = find_placeholder_key_in_query(query)
+            if placeholder_keys is None or not placeholder_keys:
+                metadata = {
+                    "cmem": {"identifier": auto_select_query.identifier, "placeholder": "None"}
+                }
+                results = query.get_json_results()
+            else:
+                auto_fill_placeholder = self._auto_fill_placeholder(
+                    query_str=query_str, placeholder_keys=placeholder_keys
+                )
+                if auto_fill_placeholder is None:
+                    logging.warning("Could not auto fill placeholders.")
+                    metadata = {
+                        "cmem": {"identifier": auto_select_query.identifier, "placeholder": "None"}
+                    }
+                    results = {}
+                else:
+                    metadata = {
+                        "cmem": {
+                            "identifier": auto_select_query.identifier,
+                            "placeholder": str(auto_fill_placeholder.data),
+                        }
+                    }
+                    results = query.get_json_results(placeholder=auto_fill_placeholder.data)
+        return results, metadata
 
     def _retrieve(self, query_bundle: QueryBundle) -> list[NodeWithScore]:
         catalog = QueryCatalog()
-        _identifier = self.identifier
-        _placeholder = self.placeholder
-        results: Any = []
-        if _identifier is not None:
-            query = catalog.get_query(_identifier)
-            metadata = {"cmem": {"identifier": _identifier, "placeholder": _placeholder}}
-            if query is None:
-                logging.warning(
-                    f"CMEM query catalog does not contain a query with identifier "
-                    f"'{_identifier}'"
-                )
-                return auto_convert_results(results, metadata=metadata)
+        if self.identifier is not None:
+            results, metadata = self._default_retrieve(catalog)
         else:
-            query_str = query_bundle.query_str
-            auto_select: AutoSelect = self._auto_select_query(query_str)
-            _identifier = auto_select.identifier
-            _placeholder = {item.key: item.value for item in auto_select.placeholder}
-            metadata = {
-                "cmem": {
-                    "auto_selected_identifier": _identifier,
-                    "auto_selected_placeholder": _placeholder,
-                }
-            }
-            if not auto_select.found:
-                return auto_convert_results(results, metadata=metadata)
-            query = catalog.get_query(_identifier)
-        results = query.get_json_results(placeholder=_placeholder)
+            results, metadata = self._auto_retrieve(catalog, query_str=query_bundle.query_str)
         return auto_convert_results(results, metadata=metadata)

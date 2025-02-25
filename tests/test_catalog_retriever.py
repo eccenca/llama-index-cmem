@@ -30,6 +30,11 @@ def extract_bindings(nodes_with_score: list[NodeWithScore]) -> list[Any]:
     return [item for item in bindings if isinstance(item, dict)]
 
 
+def extract_metadata(nodes_with_score: list[NodeWithScore]) -> dict[str, Any]:
+    """Extract metadata from nodes"""
+    return nodes_with_score[0].metadata
+
+
 @pytest.mark.usefixtures("graph_setup")
 def test_catalog_retriever_unknown_query() -> None:
     """Test catalog retriever with an unknown query"""
@@ -78,3 +83,36 @@ def test_catalog_retriever_with_placeholder_properties() -> None:
     assert len(retrieved_nodes) == 1
     bindings = extract_bindings(retrieved_nodes)
     assert len(bindings) == CATALOG_RETRIEVER_PROPERTIES_BINDINGS
+
+
+@pytest.mark.usefixtures("graph_setup")
+def test_catalog_retriever_auto_select_services() -> None:
+    """Test catalog retriever using auto select without placeholders and services"""
+    catalog_retriever = CatalogRetriever()
+    retrieved_nodes = catalog_retriever.retrieve(
+        QueryBundle(query_str="Show me all services from product demo.")
+    )
+    assert len(retrieved_nodes) == 1
+    metadata = extract_metadata(retrieved_nodes)
+    assert metadata["cmem"]["identifier"] == ":all-services"
+    bindings = extract_bindings(retrieved_nodes)
+    assert len(bindings) == CATALOG_RETRIEVER_SERVICES_BINDINGS
+
+
+@pytest.mark.usefixtures("graph_setup")
+def test_catalog_retriever_auto_select_with_placeholder_classes() -> None:
+    """Test catalog retriever with auto select with placeholders and classes"""
+    catalog_retriever = CatalogRetriever()
+    retrieved_nodes = catalog_retriever.retrieve(
+        QueryBundle(
+            query_str="Show me used classes in this graph: 'http://ld.company.org/prod-inst/'"
+        )
+    )
+    assert len(retrieved_nodes) == 1
+    metadata = extract_metadata(retrieved_nodes)
+    assert metadata["cmem"]["identifier"] == ":list-classes"
+    assert (
+        metadata["cmem"]["placeholder"]["graph"] == "http://ld.company.org/prod-inst/"
+    )
+    bindings = extract_bindings(retrieved_nodes)
+    assert len(bindings) == CATALOG_RETRIEVER_CLASSES_BINDINGS
