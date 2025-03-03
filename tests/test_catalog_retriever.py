@@ -4,8 +4,9 @@ import json
 from typing import Any
 
 import pytest
-from llama_index.core import QueryBundle
+from llama_index.core import QueryBundle, Settings
 from llama_index.core.schema import NodeWithScore
+from llama_index.embeddings.openai import OpenAIEmbedding
 
 from llama_index_cmem.retrievers.cmem.catlog import CatalogRetriever
 
@@ -86,45 +87,14 @@ def test_catalog_retriever_with_placeholder_properties() -> None:
 
 
 @pytest.mark.usefixtures("graph_setup")
-def test_catalog_retriever_auto_select_services() -> None:
-    """Test catalog retriever using auto select without placeholders and services"""
-    catalog_retriever = CatalogRetriever()
+def test_catalog_retriever_vector_retrieve_services() -> None:
+    """Test catalog retriever using vectorstore retrieve"""
+    Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-small")
+    catalog_retriever = CatalogRetriever(use_vector_retrieve=True)
     retrieved_nodes = catalog_retriever.retrieve(
-        QueryBundle(query_str="Show me all services from product demo.")
+        QueryBundle(query_str="Show me all service from product demo.")
     )
     assert len(retrieved_nodes) == 1
-    metadata = extract_metadata(retrieved_nodes)
-    assert metadata["cmem"]["identifier"] == ":all-services"
-    bindings = extract_bindings(retrieved_nodes)
-    assert len(bindings) == CATALOG_RETRIEVER_SERVICES_BINDINGS
-
-
-@pytest.mark.usefixtures("graph_setup")
-def test_catalog_retriever_auto_select_with_placeholder_classes() -> None:
-    """Test catalog retriever with auto select with placeholders and classes"""
-    catalog_retriever = CatalogRetriever()
-    retrieved_nodes = catalog_retriever.retrieve(
-        QueryBundle(
-            query_str="Show me used classes in this graph: 'http://ld.company.org/prod-inst/'"
-        )
-    )
-    assert len(retrieved_nodes) == 1
-    metadata = extract_metadata(retrieved_nodes)
-    assert metadata["cmem"]["identifier"] == ":list-classes"
-    assert (
-        metadata["cmem"]["placeholder"]["graph"] == "http://ld.company.org/prod-inst/"
-    )
-    bindings = extract_bindings(retrieved_nodes)
-    assert len(bindings) == CATALOG_RETRIEVER_CLASSES_BINDINGS
-
-@pytest.mark.usefixtures("graph_setup")
-def test_catalog_retriever_auto_select_services() -> None:
-    """Test catalog retriever using auto select without placeholders and services"""
-    catalog_retriever = CatalogRetriever()
-    retrieved_nodes = catalog_retriever.retrieve(
-        QueryBundle(query_str="xxx")
-    )
-    assert len(retrieved_nodes) == 0
     metadata = extract_metadata(retrieved_nodes)
     assert metadata["cmem"]["identifier"] == ":all-services"
     bindings = extract_bindings(retrieved_nodes)

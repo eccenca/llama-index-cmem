@@ -1,18 +1,24 @@
 """Catalog retriever."""
 
-import json
 import logging
 import re
 from typing import Any, cast
 
 from cmem.cmempy.queries import DEFAULT_NS, QUERY_STRING, QueryCatalog, SparqlQuery
-from llama_index.core import PromptTemplate, QueryBundle, Settings
+from llama_index.core import (
+    PromptTemplate,
+    QueryBundle,
+    Settings,
+    VectorStoreIndex,
+)
 from llama_index.core.base.base_retriever import BaseRetriever
 from llama_index.core.llms import LLM
 from llama_index.core.prompts import PromptType
 from llama_index.core.schema import NodeWithScore
+from llama_index.core.vector_stores import SimpleVectorStore
 from pydantic import BaseModel, Field
 
+from llama_index_cmem.readers.cmem import CMEMReader
 from llama_index_cmem.retrievers.cmem.base import auto_convert_results
 
 DEFAULT_AUTO_SELECT_QUERY_TEMPLATE = """
@@ -72,6 +78,37 @@ DEFAULT_AUTO_FILL_PLACEHOLDER_PROMPT = PromptTemplate(
     DEFAULT_AUTO_FILL_PLACEHOLDER_TEMPLATE, prompt_type=PromptType.CUSTOM
 )
 
+DEFAULT_VECTOR_STORE_RETRIEVE_TEMPLATE = """
+You are given a vector store containing documents, where each document represents a query
+with the following structure:
+
+doc id: A unique identifier for the document.
+label: A concise title or name of the query.
+description: A detailed explanation of the query's purpose.
+
+Task:
+Given a user's question, identify the most relevant query from the vector store
+and return its document id. If no query is sufficiently relevant, return `null`.
+
+Guidelines:
+Evaluate semantic similarity between the user's question and both the label and
+description of each document.
+Select the query that best matches the user's intent.
+If no query meets a reasonable similarity threshold, return `null`.
+
+Input:
+User question: {query_str}
+Vector store: [List of documents with "doc id", "label", and "description"]
+
+Output:
+Return the doc id of the best-matching query.
+If no suitable match exists, return `null`.
+"""
+
+DEFAULT_VECTOR_STORE_RETRIEVE_PROMPT = PromptTemplate(
+    DEFAULT_VECTOR_STORE_RETRIEVE_TEMPLATE, prompt_type=PromptType.CUSTOM
+)
+
 
 def get_query_catalog_as_json() -> list[dict[str, Any]]:
     """Get query catalog as JSON."""
@@ -81,7 +118,7 @@ def get_query_catalog_as_json() -> list[dict[str, Any]]:
         query = {
             "identifier": result.get("query").get("value").replace(DEFAULT_NS, ":"),
             "label": result.get("label").get("value"),
-            "description": result.get("description", {}).get("value")
+            "description": result.get("description", {}).get("value"),
         }
         queries.append(query)
     return queries
@@ -109,6 +146,23 @@ class AutoFillPlaceholder(BaseModel):
     data: dict[str, str] = Field(..., description="Placeholder as key-value pair.")
 
 
+def _vector_retrieve(
+    catalog: QueryCatalog, query_str: str, index: VectorStoreIndex | None = None
+) -> tuple[dict, dict]:
+    if index is None:
+        documents = CMEMReader().load_query_catalog_data()
+        vector_store = SimpleVectorStore()
+        index = VectorStoreIndex.from_documents(documents, vector_store=vector_store)
+    query_engine = index.as_query_engine(text_qa_template=DEFAULT_VECTOR_STORE_RETRIEVE_PROMPT)
+    response = query_engine.query(str_or_query_bundle=query_str)
+    query = response.source_nodes[0].metadata["query"]
+    identifier = query.replace(DEFAULT_NS, ":")
+    metadata = {"cmem": {"identifier": identifier, "placeholder": "None"}}
+    query = catalog.get_query(identifier=identifier)
+    results = query.get_json_results()
+    return results, metadata
+
+
 class CatalogRetriever(BaseRetriever):
     """Catalog Retriever."""
 
@@ -116,11 +170,13 @@ class CatalogRetriever(BaseRetriever):
         self,
         identifier: str | None = None,
         placeholder: dict | None = None,
+        use_vector_retrieve: bool = False,
         llm: LLM | None = None,
     ) -> None:
         super().__init__()
         self.identifier = identifier
         self.placeholder = placeholder
+        self.use_vector_retrieve = use_vector_retrieve
         self.llm = llm or Settings.llm
 
     def _auto_select_query(
@@ -204,6 +260,8 @@ class CatalogRetriever(BaseRetriever):
         catalog = QueryCatalog()
         if self.identifier is not None:
             results, metadata = self._default_retrieve(catalog)
+        elif self.use_vector_retrieve:
+            results, metadata = _vector_retrieve(catalog, query_str=query_bundle.query_str)
         else:
             results, metadata = self._auto_retrieve(catalog, query_str=query_bundle.query_str)
         return auto_convert_results(results, metadata=metadata)
