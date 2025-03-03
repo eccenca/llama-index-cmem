@@ -24,8 +24,7 @@ Here is an example of a query object:
 {
     'identifier': ':unique id of a query',
     'label': 'a label naming a query',
-    'description': 'an optional and more detailed description',
-    'sparql': 'the actual SPARQL query'
+    'description': 'an optional and more detailed description'
 }
 ```
 
@@ -82,8 +81,7 @@ def get_query_catalog_as_json() -> list[dict[str, Any]]:
         query = {
             "identifier": result.get("query").get("value").replace(DEFAULT_NS, ":"),
             "label": result.get("label").get("value"),
-            "description": result.get("description", {}).get("value"),
-            "sparql": result.get("text").get("value"),
+            "description": result.get("description", {}).get("value")
         }
         queries.append(query)
     return queries

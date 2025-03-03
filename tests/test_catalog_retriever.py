@@ -116,3 +116,16 @@ def test_catalog_retriever_auto_select_with_placeholder_classes() -> None:
     )
     bindings = extract_bindings(retrieved_nodes)
     assert len(bindings) == CATALOG_RETRIEVER_CLASSES_BINDINGS
+
+@pytest.mark.usefixtures("graph_setup")
+def test_catalog_retriever_auto_select_services() -> None:
+    """Test catalog retriever using auto select without placeholders and services"""
+    catalog_retriever = CatalogRetriever()
+    retrieved_nodes = catalog_retriever.retrieve(
+        QueryBundle(query_str="xxx")
+    )
+    assert len(retrieved_nodes) == 0
+    metadata = extract_metadata(retrieved_nodes)
+    assert metadata["cmem"]["identifier"] == ":all-services"
+    bindings = extract_bindings(retrieved_nodes)
+    assert len(bindings) == CATALOG_RETRIEVER_SERVICES_BINDINGS
