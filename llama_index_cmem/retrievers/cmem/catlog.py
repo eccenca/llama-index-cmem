@@ -1,25 +1,22 @@
 """Catalog retriever."""
 
 import logging
-import re
 from typing import Any, cast
 
-from cmem.cmempy.queries import DEFAULT_NS, QUERY_STRING, QueryCatalog, SparqlQuery
+from cmem.cmempy.queries import DEFAULT_NS, QueryCatalog, SparqlQuery
 from llama_index.core import (
     PromptTemplate,
     QueryBundle,
     Settings,
     VectorStoreIndex,
 )
-from llama_index.core.base.base_retriever import BaseRetriever
 from llama_index.core.llms import LLM
 from llama_index.core.prompts import PromptType
-from llama_index.core.schema import NodeWithScore
 from llama_index.core.vector_stores import SimpleVectorStore
 from pydantic import BaseModel, Field
 
 from llama_index_cmem.readers.cmem import CMEMReader
-from llama_index_cmem.retrievers.cmem.base import auto_convert_results
+from llama_index_cmem.retrievers.cmem.base import CMEMBaseRetriever
 
 DEFAULT_AUTO_SELECT_QUERY_TEMPLATE = """
 Given is a query catalog as a list of SPARQL query objects in JSON format.
@@ -112,26 +109,15 @@ DEFAULT_VECTOR_STORE_RETRIEVE_PROMPT = PromptTemplate(
 
 def get_query_catalog_as_json() -> list[dict[str, Any]]:
     """Get query catalog as JSON."""
-    results = SparqlQuery(QUERY_STRING, query_type="SELECT").get_json_results()
-    queries = []
-    for result in results["results"]["bindings"]:
-        query = {
-            "identifier": result.get("query").get("value").replace(DEFAULT_NS, ":"),
-            "label": result.get("label").get("value"),
-            "description": result.get("description", {}).get("value"),
+    queries: dict[str, SparqlQuery] = QueryCatalog().get_queries()
+    return [
+        {
+            "identifier": query.url,
+            "label": query.label,
+            "description": query.description,
         }
-        queries.append(query)
-    return queries
-
-
-def find_placeholder_key_in_query(query: SparqlQuery) -> list[str]:
-    """Extract query placeholders from SPARQL query."""
-    return re.findall(r"{{([a-zA-Z0-9_-]+)}}", query.text)
-
-
-def is_valid_query_identifier(identifier: str) -> bool:
-    """Check if a query identifier is valid."""
-    return identifier.startswith(":")
+        for query in queries.values()
+    ]
 
 
 class AutoSelectQuery(BaseModel):
@@ -146,37 +132,39 @@ class AutoFillPlaceholder(BaseModel):
     data: dict[str, str] = Field(..., description="Placeholder as key-value pair.")
 
 
-def _vector_retrieve(
-    catalog: QueryCatalog, query_str: str, index: VectorStoreIndex | None = None
-) -> tuple[dict, dict]:
-    if index is None:
-        documents = CMEMReader().load_query_catalog_data()
-        vector_store = SimpleVectorStore()
-        index = VectorStoreIndex.from_documents(documents, vector_store=vector_store)
-    query_engine = index.as_query_engine(text_qa_template=DEFAULT_VECTOR_STORE_RETRIEVE_PROMPT)
-    response = query_engine.query(str_or_query_bundle=query_str)
-    query = response.source_nodes[0].metadata["query"]
-    identifier = query.replace(DEFAULT_NS, ":")
-    metadata = {"cmem": {"identifier": identifier, "placeholder": "None"}}
-    query = catalog.get_query(identifier=identifier)
-    results = query.get_json_results()
-    return results, metadata
+class CatalogVectorRetriever(CMEMBaseRetriever):
+    """Catalog retriever using vector store."""
+
+    def _retrieve_cmem_results(self, query_bundle: QueryBundle) -> tuple[dict, dict]:
+        catalog = QueryCatalog()
+        return self._vector_retrieve(catalog, query_bundle.query_str)
+
+    @staticmethod
+    def _vector_retrieve(
+        catalog: QueryCatalog, query_str: str, index: VectorStoreIndex | None = None
+    ) -> tuple[dict, dict]:
+        if index is None:
+            documents = CMEMReader().load_query_catalog_data()
+            vector_store = SimpleVectorStore()
+            index = VectorStoreIndex.from_documents(documents, vector_store=vector_store)
+        query_engine = index.as_query_engine(text_qa_template=DEFAULT_VECTOR_STORE_RETRIEVE_PROMPT)
+        response = query_engine.query(str_or_query_bundle=query_str)
+        query = response.source_nodes[0].metadata["query"]
+        identifier = query.replace(DEFAULT_NS, ":")
+        metadata = {"cmem": {"identifier": identifier, "placeholder": "None"}}
+        query = catalog.get_query(identifier=identifier)
+        results = query.get_json_results()
+        return results, metadata
 
 
-class CatalogRetriever(BaseRetriever):
+class CatalogAutoSelectRetriever(CMEMBaseRetriever):
     """Catalog Retriever."""
 
     def __init__(
         self,
-        identifier: str | None = None,
-        placeholder: dict | None = None,
-        use_vector_retrieve: bool = False,
         llm: LLM | None = None,
     ) -> None:
         super().__init__()
-        self.identifier = identifier
-        self.placeholder = placeholder
-        self.use_vector_retrieve = use_vector_retrieve
         self.llm = llm or Settings.llm
 
     def _auto_select_query(
@@ -209,19 +197,6 @@ class CatalogRetriever(BaseRetriever):
             return None
         return cast(AutoFillPlaceholder, prediction)
 
-    def _default_retrieve(self, catalog: QueryCatalog) -> tuple[dict, dict]:
-        metadata = {"cmem": {"identifier": self.identifier, "placeholder": self.placeholder}}
-        query = catalog.get_query(self.identifier, self.placeholder)
-        if query is None:
-            logging.warning(
-                f"CMEM query catalog does not contain a query with identifier "
-                f"'{self.identifier}'"
-            )
-            results = {}
-        else:
-            results = query.get_json_results(placeholder=self.placeholder)
-        return results, metadata
-
     def _auto_retrieve(self, catalog: QueryCatalog, query_str: str) -> tuple[dict, dict]:
         auto_select_query = self._auto_select_query(query_str=query_str)
         if auto_select_query is None:
@@ -230,7 +205,7 @@ class CatalogRetriever(BaseRetriever):
             results = {}
         else:
             query = catalog.get_query(auto_select_query.identifier)
-            placeholder_keys = find_placeholder_key_in_query(query)
+            placeholder_keys = query.get_placeholder_keys()
             if placeholder_keys is None or not placeholder_keys:
                 metadata = {
                     "cmem": {"identifier": auto_select_query.identifier, "placeholder": "None"}
@@ -256,12 +231,6 @@ class CatalogRetriever(BaseRetriever):
                     results = query.get_json_results(placeholder=auto_fill_placeholder.data)
         return results, metadata
 
-    def _retrieve(self, query_bundle: QueryBundle) -> list[NodeWithScore]:
+    def _retrieve_cmem_results(self, query_bundle: QueryBundle) -> tuple[dict, dict]:
         catalog = QueryCatalog()
-        if self.identifier is not None:
-            results, metadata = self._default_retrieve(catalog)
-        elif self.use_vector_retrieve:
-            results, metadata = _vector_retrieve(catalog, query_str=query_bundle.query_str)
-        else:
-            results, metadata = self._auto_retrieve(catalog, query_str=query_bundle.query_str)
-        return auto_convert_results(results, metadata=metadata)
+        return self._auto_retrieve(catalog, query_str=query_bundle.query_str)
