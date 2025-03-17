@@ -19,7 +19,7 @@ from llama_index_cmem.readers.cmem import CMEMReader
 from llama_index_cmem.retrievers.cmem.base import CMEMBaseRetriever
 
 DEFAULT_AUTO_SELECT_QUERY_TEMPLATE = """
-Extract the Query that matches the question {query_str} from the following Query Catalog 
+Extract the Query that matches the question {query_str} from the following Query Catalog\n
 ```json
 {queries}
 ```
@@ -82,27 +82,32 @@ def get_query_catalog_as_json() -> list[dict[str, Any]]:
 
 
 class SelectQuery(BaseModel):
-    """Auto select query model."""
+    """Represents a selectable query with an identifier, label, and description."""
 
-    identifier: str = Field(description="Unique identifier of a query.")
-    label:str =  Field('a label naming a query')
-    description: str = Field('an optional and more detailed description')
+    identifier: str = Field(description="Unique identifier of the query.")
+    label: str = Field(default="A label naming a query", description="Short label for the query.")
+    description: str = Field(
+        default="An optional and more detailed description",
+        description="Detailed explanation of the query.",
+    )
 
 
 class Placeholder(BaseModel):
-    """Placeholder query model."""
-    key: str = Field(description="Placeholder key")
-    value: str = Field(description="Placeholder value")
+    """Represents a key-value pair for query placeholders."""
+
+    key: str = Field(description="Placeholder key.")
+    value: str = Field(description="Placeholder value.")
+
 
 class Placeholders(BaseModel):
-    """Placeholder query model."""
+    """Represents a collection of query placeholders."""
+
     placeholders: list[Placeholder]
 
-    def model_dump(self,  *args, **kwargs) -> dict[str, str]:
-        _items = {}
-        for _ in self.placeholders:
-            _items[_.key] = _.value
-        return _items
+    def to_dict(self) -> dict[str, str]:
+        """Convert the Placeholders model into a dictionary mapping keys to values."""
+        return {placeholder.key: placeholder.value for placeholder in self.placeholders}
+
 
 class CatalogVectorRetriever(CMEMBaseRetriever):
     """Catalog retriever using vector store."""
@@ -141,7 +146,7 @@ class CatalogAutoSelectRetriever(CMEMBaseRetriever):
 
     def _auto_select_query(
         self, query_str: str, prompt: PromptTemplate = DEFAULT_AUTO_SELECT_QUERY_PROMPT
-    ) -> SelectQuery | None:
+    ) -> SelectQuery:
         queries = get_query_catalog_as_json()
         prediction = self.llm.structured_predict(
             output_cls=SelectQuery, prompt=prompt, query_str=query_str, queries=queries
@@ -153,7 +158,7 @@ class CatalogAutoSelectRetriever(CMEMBaseRetriever):
         query_str: str,
         placeholder_keys: list[str],
         prompt: PromptTemplate = DEFAULT_AUTO_FILL_PLACEHOLDER_PROMPT,
-    ) -> Placeholder | None:
+    ) -> Placeholders | None:
         if not placeholder_keys:
             return None
         prediction = self.llm.structured_predict(
@@ -164,7 +169,7 @@ class CatalogAutoSelectRetriever(CMEMBaseRetriever):
         )
         if prediction == "null":
             return None
-        return cast(Placeholder, prediction)
+        return cast(Placeholders, prediction)
 
     def _auto_retrieve(self, catalog: QueryCatalog, query_str: str) -> tuple[dict, dict]:
         auto_select_query = self._auto_select_query(query_str=query_str)
@@ -194,10 +199,10 @@ class CatalogAutoSelectRetriever(CMEMBaseRetriever):
                     metadata = {
                         "cmem": {
                             "identifier": auto_select_query.identifier,
-                            "placeholder": f"{auto_fill_placeholder.model_dump()}",
+                            "placeholder": f"{auto_fill_placeholder.to_dict()}",
                         }
                     }
-                    results = query.get_json_results(placeholder=auto_fill_placeholder.model_dump())
+                    results = query.get_json_results(placeholder=auto_fill_placeholder.to_dict())
         return results, metadata
 
     def _retrieve_cmem_results(self, query_bundle: QueryBundle) -> tuple[dict, dict]:
