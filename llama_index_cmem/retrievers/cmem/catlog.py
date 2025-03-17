@@ -19,32 +19,10 @@ from llama_index_cmem.readers.cmem import CMEMReader
 from llama_index_cmem.retrievers.cmem.base import CMEMBaseRetriever
 
 DEFAULT_AUTO_SELECT_QUERY_TEMPLATE = """
-Given is a query catalog as a list of SPARQL query objects in JSON format.
-Each query object has an identifier and some optional attributes.
-
-Here is an example of a query object:
+Extract the Query that matches the question {query_str} from the following Query Catalog 
 ```json
-{
-    'identifier': ':unique id of a query',
-    'label': 'a label naming a query',
-    'description': 'an optional and more detailed description'
-}
+{queries}
 ```
-
-Look at each query object from the catalog and select the best matching query to answer
-the user question. Return the identifier of the selected query as JSON object like:
-```json
-{
-  "identifier": "query_id"
-}
-```
-
-In case there is no matching query available in the catalog,
-return `null`.
-
-User question: {query_str}
-Query catalog: {catalog_str}
-Response:
 """
 
 DEFAULT_AUTO_SELECT_QUERY_PROMPT = PromptTemplate(
@@ -52,24 +30,7 @@ DEFAULT_AUTO_SELECT_QUERY_PROMPT = PromptTemplate(
 )
 
 DEFAULT_AUTO_FILL_PLACEHOLDER_TEMPLATE = """
-Given is a list of placeholder keys in JSON format and a user question.
-
-Generate a meaningful value for each placeholder key in the list.
-Return the result as JSON dictionary with key-value pairs like:
-```json
-{
-  "key1": "value1",
-  "key2": "value2"
-}
-```
-
-Look at the user question for useful values or guess a value for each placeholder key.
-If there are no useful values available, return `null`.
-
-User question: {query_str}
-Placeholder keys: {placeholder_keys_str}
-Response:
-"""
+Extract the Placeholders from the {query_str} for keys {keys}"""
 
 DEFAULT_AUTO_FILL_PLACEHOLDER_PROMPT = PromptTemplate(
     DEFAULT_AUTO_FILL_PLACEHOLDER_TEMPLATE, prompt_type=PromptType.CUSTOM
@@ -120,17 +81,28 @@ def get_query_catalog_as_json() -> list[dict[str, Any]]:
     ]
 
 
-class AutoSelectQuery(BaseModel):
+class SelectQuery(BaseModel):
     """Auto select query model."""
 
-    identifier: str = Field(..., description="Unique identifier of a query.")
+    identifier: str = Field(description="Unique identifier of a query.")
+    label:str =  Field('a label naming a query')
+    description: str = Field('an optional and more detailed description')
 
 
-class AutoFillPlaceholder(BaseModel):
-    """Autofill placeholder."""
+class Placeholder(BaseModel):
+    """Placeholder query model."""
+    key: str = Field(description="Placeholder key")
+    value: str = Field(description="Placeholder value")
 
-    data: dict[str, str] = Field(..., description="Placeholder as key-value pair.")
+class Placeholders(BaseModel):
+    """Placeholder query model."""
+    placeholders: list[Placeholder]
 
+    def model_dump(self,  *args, **kwargs) -> dict[str, str]:
+        _items = {}
+        for _ in self.placeholders:
+            _items[_.key] = _.value
+        return _items
 
 class CatalogVectorRetriever(CMEMBaseRetriever):
     """Catalog retriever using vector store."""
@@ -169,44 +141,41 @@ class CatalogAutoSelectRetriever(CMEMBaseRetriever):
 
     def _auto_select_query(
         self, query_str: str, prompt: PromptTemplate = DEFAULT_AUTO_SELECT_QUERY_PROMPT
-    ) -> AutoSelectQuery | None:
+    ) -> SelectQuery | None:
         queries = get_query_catalog_as_json()
         prediction = self.llm.structured_predict(
-            output_cls=AutoSelectQuery, prompt=prompt, query_str=query_str, catalog_str=str(queries)
+            output_cls=SelectQuery, prompt=prompt, query_str=query_str, queries=queries
         )
-        if prediction == "null":
-            return None
-        return cast(AutoSelectQuery, prediction)
+        return cast(SelectQuery, prediction)
 
     def _auto_fill_placeholder(
         self,
         query_str: str,
         placeholder_keys: list[str],
         prompt: PromptTemplate = DEFAULT_AUTO_FILL_PLACEHOLDER_PROMPT,
-    ) -> AutoFillPlaceholder | None:
+    ) -> Placeholder | None:
         if not placeholder_keys:
             return None
-        placeholder_keys_str = str(placeholder_keys)
         prediction = self.llm.structured_predict(
-            output_cls=AutoFillPlaceholder,
+            output_cls=Placeholders,
             prompt=prompt,
             query_str=query_str,
-            placeholder_keys_str=placeholder_keys_str,
+            keys=",".join(placeholder_keys),
         )
         if prediction == "null":
             return None
-        return cast(AutoFillPlaceholder, prediction)
+        return cast(Placeholder, prediction)
 
     def _auto_retrieve(self, catalog: QueryCatalog, query_str: str) -> tuple[dict, dict]:
         auto_select_query = self._auto_select_query(query_str=query_str)
-        if auto_select_query is None:
+        query = catalog.get_query(auto_select_query.identifier)
+        if query is None:
             logging.warning("Could not find a matching query in CMEM query catalog.")
             metadata = {"cmem": {"identifier": "None", "placeholder": "None"}}
             results = {}
         else:
-            query = catalog.get_query(auto_select_query.identifier)
             placeholder_keys = query.get_placeholder_keys()
-            if placeholder_keys is None or not placeholder_keys:
+            if not placeholder_keys:
                 metadata = {
                     "cmem": {"identifier": auto_select_query.identifier, "placeholder": "None"}
                 }
@@ -225,10 +194,10 @@ class CatalogAutoSelectRetriever(CMEMBaseRetriever):
                     metadata = {
                         "cmem": {
                             "identifier": auto_select_query.identifier,
-                            "placeholder": str(auto_fill_placeholder.data),
+                            "placeholder": f"{auto_fill_placeholder.model_dump()}",
                         }
                     }
-                    results = query.get_json_results(placeholder=auto_fill_placeholder.data)
+                    results = query.get_json_results(placeholder=auto_fill_placeholder.model_dump())
         return results, metadata
 
     def _retrieve_cmem_results(self, query_bundle: QueryBundle) -> tuple[dict, dict]:
