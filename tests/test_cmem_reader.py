@@ -14,7 +14,7 @@ def test_cmem_reader(graph_setup: GraphSetup) -> None:
     """Testing cmem reader"""
     cmem_reader = CMEMReader()
     graph = graph_setup.graphs["combined"]["iri"]
-    documents = cmem_reader.load_default_data(placeholder={"graph": graph})
+    documents = cmem_reader.load_graph_data(graph=graph)
     assert len(documents) == NUMBER_OF_DOCUMENTS
 
 
