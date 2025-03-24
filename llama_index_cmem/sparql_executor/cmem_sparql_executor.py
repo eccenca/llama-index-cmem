@@ -14,7 +14,7 @@ class CMEMSPARQLExecutor(SPARQLExecutor):
         super().__init__()
         self._sparqlquery = SparqlQuery(text="", query_type="SELECT")
 
-    def run_query(self, query: str) -> list[dict[str, Any]]:
+    def run_query(self, query: str) -> dict[str, Any]:
         """Run sparql query"""
         self._sparqlquery.text = query
-        return self._sparqlquery.get_json_results()
+        return self._sparqlquery.get_json_results()  # type: ignore[no-any-return]
