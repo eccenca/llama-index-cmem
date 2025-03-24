@@ -1,4 +1,5 @@
 """Prompts module"""
+
 from llama_index.core import PromptTemplate
 from llama_index.core.prompts import PromptType
 

@@ -11,7 +11,7 @@ class SPARQLQueryHandler:
     def __init__(self, executor: SPARQLExecutor):
         self._executor = executor
 
-    def run_sparql(self, query: str) ->dict[str, Any]:
+    def run_sparql(self, query: str) -> dict[str, Any]:
         """Run sparql query"""
         try:
             return self._executor.run_query(query)
