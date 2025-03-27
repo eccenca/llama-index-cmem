@@ -12,12 +12,13 @@ from tests.utils import needs_openai
 LIMIT = 10
 ONTOLOGY_GRAPH = "http://ld.company.org/prod-vocab/"
 CONTEXT_GRAPH = "http://ld.company.org/prod-inst/"
-SAMPLE_QUERY = """PREFIX  rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+SAMPLE_QUERY = f"""PREFIX  rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX  rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT  *
 WHERE
-  { ?sub  rdfs:label  ?obj }"""
-f"""LIMIT   {LIMIT}"""
+  {{ ?sub  rdfs:label  ?obj }}
+LIMIT   {LIMIT}
+"""
 
 
 @pytest.mark.usefixtures("graph_setup")
