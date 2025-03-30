@@ -1,12 +1,12 @@
 """test sparql retriever"""
 
 import pytest
+from cmem.cmempy.dp.proxy.graph import get
 from llama_index.core import QueryBundle, Settings
 from llama_index.llms.openai import OpenAI
 
 from llama_index_cmem.executor.cmem_sparql_executor import CMEMSPARQLExecutor
 from llama_index_cmem.retrievers.sparql_retriever import NLSPARQLRetriever, SPARQLRetriever
-from llama_index_cmem.utils.cmem_query_builder import download_ontology
 from tests.utils import needs_openai
 
 LIMIT = 10
@@ -19,6 +19,12 @@ WHERE
   {{ ?sub  rdfs:label  ?obj }}
 LIMIT   {LIMIT}
 """
+
+
+def download_ontology(ontology_graph: str) -> str:
+    """Download an ontology as text/turtle"""
+    graph = get(ontology_graph, owl_imports_resolution=True, accept="text/turtle")
+    return str(graph.content)
 
 
 @pytest.mark.usefixtures("graph_setup")
