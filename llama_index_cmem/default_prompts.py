@@ -30,3 +30,28 @@ DEFAULT_TEXT_TO_SPARQL_PROMPT = PromptTemplate(
     DEFAULT_TEXT_TO_SPARQL_PROMPT_TEMPLATE,
     prompt_type=PromptType.TEXT_TO_GRAPH_QUERY,
 )
+
+# LLM prompt to select the best query
+DEFAULT_SPARQL_QUERY_SELECTION_PROMPT_TEMPLATE = """
+You are an expert in selecting SPARQL queries.
+Given the user's request, choose the most relevant query.
+
+User Request: {user_query}
+
+Available Queries:
+{query_options}
+
+Respond with only the query number that best matches the user's intent.
+"""
+DEFAULT_SPARQL_QUERY_SELECTION_PROMPT = PromptTemplate(
+    template=DEFAULT_SPARQL_QUERY_SELECTION_PROMPT_TEMPLATE,
+)
+
+
+DEFAULT_PLACEHOLDER_QUERY_TEMPLATE = """
+Extract the value for '{placeholder}' from this query: '{user_query}'. Only return the value.
+"""
+
+DEFAULT_PLACEHOLDER_QUERY = PromptTemplate(
+    template=DEFAULT_PLACEHOLDER_QUERY_TEMPLATE,
+)
