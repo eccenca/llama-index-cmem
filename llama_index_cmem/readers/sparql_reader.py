@@ -108,19 +108,13 @@ class SPARQLReader(BaseReader):
                 documents.append(Document(doc_id=doc_id, text=text, extra_info=metadata))
         return documents
 
-    def load_graph_triples_with_labels(
-        self, graph: str, query_template: str | None = None
-    ) -> list[Document]:
+    def load_graph_triples_with_labels(self, graph: str) -> list[Document]:
         """Load Fetch subjects, predicates, and objects with their labels from the graph.
 
         :param graph: The graph URI for the SPARQL query.
-        :param query_template: A custom SPARQL query template (optional).
         :return: A list of LlamaIndex Documents.
         """
-        if not query_template:
-            query_template = GRAPH_LABELS_QUERY
-
-        query = query_template.replace("{{graph}}", graph)
+        query = GRAPH_LABELS_QUERY.replace("{{graph}}", graph)
         return self.load_data(
             query=query,
             doc_id_binding="s",  # Assuming 's' is the subject in the SPARQL result
