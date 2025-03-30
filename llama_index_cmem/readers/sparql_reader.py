@@ -5,8 +5,8 @@ import logging
 from llama_index.core import Document
 from llama_index.core.readers.base import BaseReader
 
-from llama_index_cmem.sparql_executor.sparql_executor import SPARQLExecutor
-from llama_index_cmem.sparql_executor.sparql_query_handler import SPARQLQueryHandler
+from llama_index_cmem.executor.sparql_executor import SPARQLExecutor
+from llama_index_cmem.executor.sparql_query_handler import SPARQLQueryHandler
 
 GRAPH_LABELS_QUERY = """
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>

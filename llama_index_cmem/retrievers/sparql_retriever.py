@@ -6,8 +6,8 @@ from llama_index.core.llms import LLM
 from llama_index.core.schema import NodeWithScore, QueryBundle, QueryType, TextNode
 
 from llama_index_cmem.default_prompts import DEFAULT_TEXT_TO_SPARQL_PROMPT
-from llama_index_cmem.sparql_executor.sparql_executor import SPARQLExecutor
-from llama_index_cmem.sparql_executor.sparql_query_handler import SPARQLQueryHandler
+from llama_index_cmem.executor.sparql_executor import SPARQLExecutor
+from llama_index_cmem.executor.sparql_query_handler import SPARQLQueryHandler
 
 
 class SPARQLRetriever(BaseRetriever):

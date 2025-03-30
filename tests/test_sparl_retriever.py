@@ -5,7 +5,7 @@ from llama_index.core import QueryBundle, Settings
 from llama_index.llms.openai import OpenAI
 
 from llama_index_cmem.retrievers.sparql_retriever import NLSPARQLRetriever, SPARQLRetriever
-from llama_index_cmem.sparql_executor.cmem_sparql_executor import CMEMSPARQLExecutor
+from llama_index_cmem.executor.cmem_sparql_executor import CMEMSPARQLExecutor
 from llama_index_cmem.utils.cmem_query_builder import download_ontology
 from tests.utils import needs_openai
 

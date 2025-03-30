@@ -4,7 +4,7 @@ from typing import Any
 
 from cmem.cmempy.queries import SparqlQuery
 
-from llama_index_cmem.sparql_executor.sparql_executor import SPARQLExecutor
+from llama_index_cmem.executor.sparql_executor import SPARQLExecutor
 
 
 class CMEMSPARQLExecutor(SPARQLExecutor):
