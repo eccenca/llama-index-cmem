@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
-## [Unreleased]
+## [0.6.0] 2025-04-01
 
 ### Added
 
@@ -13,7 +13,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - SPARQLRetriever to retrieve nodes from a SPARQL endpoint
 - Some default prompts to work with SPARQL and CMEM query catalog.
 
-### FIXED
+### Removed
+
+- solo query builder
+
+### Fixed
 
 - rename CMEMRetriever to NLSPARQLRetriever
 
