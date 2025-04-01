@@ -15,12 +15,17 @@ llama-index tools eccenca Corporate Memory Integration
 
 The llama-index-cmem package allows using [eccenca Corporate Memory](https://eccenca.com/products/enterprise-knowledge-graph-platform-corporate-memory) together with [LlamaIndex](https://docs.llamaindex.ai/en/stable/).
 
-Main components are CMEMQueryBuilder and CMEMRetriever.
+### Components
+- SPARQLReader: Use to load documents from SPARQL query to use in ingestion pipeline.
+- SPARQLRetriever: Execute SPARQL query to retrieve context from SPARQL endpoint.
+- NLSPARQLRetriever: Text-to-SPARQL retriever to retrieve context from SPARQL endpoint using natural language.
+- CMEMQueryCatalogRetriever: Execute SPARQL query from CMEM query catalog to retrieve context from SPARQL endpoint.
 
 There are several example notebooks available:
-- QueryBuilder: Generate a SPARQL query with given ontology and integration/context graphs.
+- NLSPARQLRetriever and CMEMQueryCatalogRetriever.
 - ChatEngine: Chatting with an RDF knowledge graph data.
 - QueryEngine: Single Q&A engine with RDF knowledge graph data.
+- PGVector: Generate embeddings from RDF knowledge graph and query with natural language (via vector similarity).
 
 
 [poetry-link]: https://python-poetry.org/
