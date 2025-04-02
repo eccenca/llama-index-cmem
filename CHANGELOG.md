@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ### Fixed
 
 - Fix outdated jupyter notebook descriptions
+- Update jinja2 dependency to pass safety check
 
 ## [0.6.0] 2025-04-01
 
