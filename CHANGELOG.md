@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
+## [Unreleased]
+
+### Fixed
+
+- Fix outdated jupyter notebook descriptions
+- Update jinja2 dependency to pass safety check
+
 ## [0.6.0] 2025-04-01
 
 ### Added
