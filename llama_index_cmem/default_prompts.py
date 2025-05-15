@@ -22,8 +22,6 @@ Ensure the query:
 
 You are required to use the following format, each taking one line:
 
-Question: Question here
-
 SPARQLQuery: SQL Query to run with prefix
 
 SPARQLResult: Result of the SPARQLQuery
