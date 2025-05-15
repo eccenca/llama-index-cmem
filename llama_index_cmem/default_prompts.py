@@ -4,26 +4,40 @@ from llama_index.core import PromptTemplate
 from llama_index.core.prompts import PromptType
 
 DEFAULT_TEXT_TO_SPARQL_PROMPT_TEMPLATE = """
-You are an expert in SPARQL and semantic web technologies. Below is an ontology schema
- in RDF triples. Generate an optimized SPARQL query that answers the users question
- using this ontology.
-
+You are an expert in SPARQL and semantic web technologies.
+Below is an ontology, and (optionally) sample instance data as well as SHACL-shapes generated from
+and thus describing the actual data present, given in RDF triples.
+Generate an optimized SPARQL query that answers the users question using this ontology /
+SHACL-shapes.
 
 ### **Generate a SPARQL Query that Retrieves Relevant Information**
 Ensure the query:
-- Uses **appropriate ontology classes and properties**.
+- Use **appropriate ontology classes and properties**.
 - Is **logically sound** and **efficient**.
 - Returns **accurate** and **relevant results**.
+- Declares only the prefixes in use.
+- Class and path IRIs from the SHACL-shapes take precedence as they represent the instance data.
+- When using (search) terms to locate nodes, use a filter approach (CONTAINS with LCASE for
+  normalization) on a variable, rather than a fixed value.
 
-You are required to use the following format, each taking one line:\n\n
-Question: Question here\n
-SPARQLQuery: SQL Query to run with prefix\n
-SPARQLResult: Result of the SPARQLQuery\
-Answer: Final answer here\n\n
-Only Ontology (RDF Triples) listed below.\n
-{ontology_triples}\n\n
-Question: {question}\n
-SPARQLQuery: \
+You are required to use the following format, each taking one line:
+
+Question: Question here
+
+SPARQLQuery: SQL Query to run with prefix
+
+SPARQLResult: Result of the SPARQLQuery
+
+Answer: Final answer here
+
+Only Ontology/SHACL-shapes (RDF Triples) listed below.
+
+{ontology_triples}
+
+Question: {question}
+
+SPARQLQuery:
+
 """
 
 DEFAULT_TEXT_TO_SPARQL_PROMPT = PromptTemplate(

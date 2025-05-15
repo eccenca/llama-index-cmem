@@ -12,17 +12,16 @@ GRAPH_LABELS_QUERY = """
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT ?s ?sl ?pl ?ol
 FROM <{{graph}}>
-WHERE {{
+WHERE {
   ?s ?p ?o .
   ?s rdfs:label ?sl .
-  ?p rdfs:label ?pl .
-  {{
-    OPTIONAL {{
-      OPTIONAL {{ ?o rdfs:label ?ol_ . }}
-      BIND(IF(!ISIRI(?o), ?o, ?ol_) AS ?ol)
-    }}
-  }}
-}}
+  OPTIONAL { ?p rdfs:label ?pl_ . }
+  BIND(IF(BOUND(?pl_), ?pl_, STR(?pl_)) AS ?pl)
+  OPTIONAL {
+    OPTIONAL { ?o rdfs:label ?ol_ . }
+    BIND(IF(!ISIRI(?o), ?o, ?ol_) AS ?ol)
+  }
+}
 """
 
 
